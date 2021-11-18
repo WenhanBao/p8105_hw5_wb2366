@@ -1,0 +1,31 @@
+---
+title: "p8105_hw5_wb2366"
+auther: Wenhan Bao
+Date: 2021-11-18
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+## Problem2
+
+**Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time**
+
+```{r}
+study_df_header <- list.files(path = "./data-2", pattern = "csv") %>% 
+  as.data.frame() %>% 
+  rename(subject_id = 1)
+
+study_df_data <- list.files(path = "./data-2", pattern = "csv", full.names = T) %>% 
+  map_df(read.csv) %>% 
+  cbind(study_df_header,.) %>% 
+  mutate(subject_id = str_sub(subject_id, end = 6)) %>% 
+  separate(col = subject_id, into = c("arm", "subject_id")) %>% 
+  pivot_longer(week_1:week_8,
+               names_to = "week",
+               values_to = "data")
+```
+
