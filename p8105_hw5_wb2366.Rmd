@@ -68,5 +68,37 @@ study_df_data %>%
 
 **Answer:** According to the "spaghetti" plot, when concentrating on the difference between two groups, we are easy to figure out that the mean data value for experiment arm is obviously larger than the mean data value for control arm.
 
+## Problem3
+
+```{r}
+set.seed(10)
+
+iris_with_missing = iris %>% 
+  map_df(~replace(.x, sample(1:150, 20), NA)) %>%
+  mutate(Species = as.character(Species))
+```
+
+**Write a function that takes a vector as an argument**
+
+```{r}
+fill_missing = function(x){
+  
+  if(is.numeric(x)){
+    x = replace(x, is.na(x), mean(x, na.rm = T))
+  }
+  else if(is.character(x)){
+    x = replace(x, is.na(x), "virginica")
+  }
+  
+  x
+}
+```
+
+**replaces missing values using the rules defined above**
+
+```{r}
+iris_df = map_df(.x = iris_with_missing, ~ fill_missing(.x))
+```
+
 
 
