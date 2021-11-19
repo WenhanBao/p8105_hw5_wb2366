@@ -35,14 +35,15 @@ For this homicides raw dataset, it contains ``r nrow(homicides_raw)`` observatio
 homicides_df <- homicides_raw %>%
   janitor::clean_names() %>%
   mutate(
-    city_state = str_c(city, '_', state),
+    city_state = str_c(city, '', state),
     homicides_status = case_when(
       disposition == "Closed without arrest" ~ "unsolved",
       disposition == "Open/No arrest" ~ "unsolved",
       disposition == "Closed by arrest" ~ "solved"
     )
   ) %>% 
-  filter(city_state != "Tulsa_AL") 
+  filter(city_state != "TulsaAL") %>% 
+  relocate(city_state)
 ```
 
 ```{r}
@@ -55,21 +56,67 @@ homicides_df %>%
 **For the city of Baltimore,MD**
 
 ```{r}
-homicides_raw %>%
-  janitor::clean_names() %>%
+Baltimore_summarize = homicides_df %>%
+  filter(city_state == "BaltimoreMD") %>%   
+  summarize(
+    unsolved = sum(homicides_status == "unsolved"),
+    n = n()
+  )
+  
+Baltimore_test = 
+  prop.test(
+    x = Baltimore_summarize %>% pull(unsolved),
+    n = Baltimore_summarize %>% pull(n))
+
+Baltimore_test %>% 
+  broom::tidy()
+```
+
+**Prop.test for each of the cities**
+
+```{r}
+prop_test_function <- function(city_df) {
+  
+  city_summarize =
+    city_df %>%
+    summarize(unsolved = sum(homicides_status == "unsolved"),
+              n = n())
+  
+  city_test =
+    prop.test(x = city_summarize %>% pull(unsolved),
+              n = city_summarize %>% pull(n))
+  
+  return(city_test)
+}
+```
+
+
+```{r}
+nested_df <- 
+  homicides_df %>%
+  nest(data = uid:homicides_status) %>% 
   mutate(
-    city_state = str_c(city, '_', state),
-    homicides_status = case_when(
-      disposition == "Closed without arrest" ~ "unsolved",
-      disposition == "Open/No arrest" ~ "unsolved",
-      disposition == "Closed by arrest" ~ "solved"
-    )
-  ) %>%
-  filter(city_state == "Baltimore_MD") %>%   
-  group_by(homicides_status) %>% 
-  tally() %>%
-  data.matrix() %>% 
-  prop.test()
+    test_results = map(data, prop_test_function),
+    tidy_results = map(test_results, broom::tidy)
+  ) %>% 
+  select(city_state, tidy_results) %>% 
+  unnest(tidy_results) %>% 
+  select(city_state, estimate, starts_with("conf"))
+```
+
+**Create a plot**
+
+```{r}
+nested_df %>%
+  mutate(city_state = fct_reorder(city_state, estimate)) %>%
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+        plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Estimate vale among different city with errorbar",
+       x = "City(State)",
+       y = "Estimate") 
 ```
 
 
@@ -146,7 +193,7 @@ fill_missing = function(x){
     x = replace(x, is.na(x), "virginica")
   }
   
-  x
+  return(x)
 }
 ```
 
