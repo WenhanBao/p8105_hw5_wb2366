@@ -42,10 +42,34 @@ homicides_df <- homicides_raw %>%
       disposition == "Closed by arrest" ~ "solved"
     )
   ) %>% 
-  group_by(city, homicides_status) %>% 
-  tally()
+  filter(city_state != "Tulsa_AL") 
+```
 
-knitr::kable(homicides_df)
+```{r}
+homicides_df %>%
+  group_by(city_state, homicides_status) %>%
+  tally() %>%
+  knitr::kable()
+```
+
+**For the city of Baltimore,MD**
+
+```{r}
+homicides_raw %>%
+  janitor::clean_names() %>%
+  mutate(
+    city_state = str_c(city, '_', state),
+    homicides_status = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest" ~ "unsolved",
+      disposition == "Closed by arrest" ~ "solved"
+    )
+  ) %>%
+  filter(city_state == "Baltimore_MD") %>%   
+  group_by(homicides_status) %>% 
+  tally() %>%
+  data.matrix() %>% 
+  prop.test()
 ```
 
 
